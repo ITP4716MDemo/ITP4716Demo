@@ -1,13 +1,17 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 
-public class Interactable : MonoBehaviour
+public class MenuBehavior : MonoBehaviour
 {
-    public string interactionPrompt = "Press E to interact";
-    public UnityEvent onInteract;
-
-    public void Interact()
+    public void LoadScene(string sceneName)
     {
-        onInteract.Invoke();
+        SceneManager.LoadScene(sceneName);
+    }
+
+    public void QuitGame()
+    {
+        Application.Quit();
     }
 }
