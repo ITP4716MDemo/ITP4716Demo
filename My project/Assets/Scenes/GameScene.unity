@@ -8372,7 +8372,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   scoreText: {fileID: 103469470}
   timerText: {fileID: 183969012}
-  nextSceneName: NextScene
+  nextSceneName: GameOver
 --- !u!4 &495630531
 Transform:
   m_ObjectHideFlags: 0
