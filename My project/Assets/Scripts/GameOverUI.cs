@@ -8,6 +8,10 @@ public class GameOverUI : MonoBehaviour
 
     void Start()
     {
+        // Show and unlock cursor for UI interaction
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
         int finalScore = PlayerPrefs.GetInt("FinalScore", 0);
         finalScoreText.text = "Final Score: " + finalScore;
     }
