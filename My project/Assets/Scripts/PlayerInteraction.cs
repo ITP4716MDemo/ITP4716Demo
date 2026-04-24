@@ -16,55 +16,73 @@ public class PlayerInteraction : MonoBehaviour
     private GameObject heldItem = null;
 
     [Header("Placement")]
-    private PlacementArea currentPlacementArea;
+    public PlacementArea placementArea;   // drag your counter here
+
+    [Header("Pointer")]
+    public Transform pointerTransform;
 
     private InteractableObject currentInteractable;
     private FoodItem currentFood;
+    private string currentHitName;
+    private bool isLookingAtPlacementArea = false;
+
+    void Start()
+    {
+        if (pointerTransform == null)
+            pointerTransform = transform.Find("Pointer");
+        if (pointerTransform == null)
+            Debug.LogWarning("Pointer Transform not assigned – will fallback to camera raycast.");
+    }
 
     void Update()
     {
-        FindInteractable();
+        FindInteractableRaycast();
 
-        // Update UI prompt based on context
-        if (heldItem != null && currentPlacementArea != null)
+        // Update isLookingAtPlacementArea separately (could also be set in raycast)
+        isLookingAtPlacementArea = (currentHitName == placementArea?.gameObject.name);
+
+        // PLACEMENT prompt & action: must be holding item AND looking at the placement area
+        if (heldItem != null && isLookingAtPlacementArea && placementArea != null && !placementArea.IsFull)
         {
             promptText.text = "Press F to place " + heldItem.GetComponent<FoodItem>().foodName;
             promptText.gameObject.SetActive(true);
             if (Input.GetKeyDown(placeKey))
             {
                 PlaceHeldItem();
+                return;
             }
-            return;
         }
-        else if (heldItem == null && currentPlacementArea != null && currentPlacementArea.HasVeggie)
+        // TAKING prompt: when empty-handed, looking at placement area that has a veggie
+        else if (heldItem == null && isLookingAtPlacementArea && placementArea != null && placementArea.HasVeggie)
         {
             promptText.text = "Press E to take vegetable";
             promptText.gameObject.SetActive(true);
             if (Input.GetKeyDown(interactKey))
             {
                 TakeFromPlacement();
+                return;
             }
-            return;
         }
+        // OTHER interactable objects (including chopping board, items to pick up)
         else if (currentInteractable != null)
         {
             promptText.text = currentInteractable.interactionPrompt;
             promptText.gameObject.SetActive(true);
             if (Input.GetKeyDown(interactKey))
             {
-                // If looking at chopping board and a veggie is placed, chop it
-                if (currentInteractable.GetComponent<ChoppingBoard>() != null && currentPlacementArea != null && currentPlacementArea.HasVeggie)
+                // Chopping board logic (must look at BoardRounded and have veggies placed)
+                if (currentInteractable.GetComponent<ChoppingBoard>() != null &&
+                    placementArea != null && placementArea.HasVeggie &&
+                    currentHitName == "BoardRounded")
                 {
-                    FoodItem placedFood = currentPlacementArea.RetrieveVeggie().GetComponent<FoodItem>();
+                    FoodItem placedFood = placementArea.RetrieveFirstVeggie().GetComponent<FoodItem>();
                     if (placedFood != null)
-                    {
                         placedFood.Chop();
-                    }
                 }
                 else
                 {
                     currentInteractable.Interact();
-                    // If it's a food item and we're not holding anything, pick it up
+                    // Pickup from fridge or other objects
                     if (currentFood != null && heldItem == null && currentFood.isGrabbable)
                     {
                         heldItem = currentFood.Pickup();
@@ -80,63 +98,67 @@ public class PlayerInteraction : MonoBehaviour
             }
             return;
         }
+        else
+        {
+            promptText.gameObject.SetActive(false);
+        }
+    }
 
-        promptText.gameObject.SetActive(false);
+    void FindInteractableRaycast()
+    {
+        Ray ray;
+        if (pointerTransform != null)
+        {
+            ray = new Ray(pointerTransform.position, pointerTransform.forward);
+            Debug.DrawRay(ray.origin, ray.direction * interactionRange, Color.red, 2f);
+        }
+        else
+        {
+            ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+            Debug.DrawRay(ray.origin, ray.direction * interactionRange, Color.green, 2f);
+        }
+
+        int spawnAreaLayer = LayerMask.NameToLayer("SpawnArea");
+        int layerMask = (spawnAreaLayer == -1) ? ~0 : ~(1 << spawnAreaLayer);
+
+        RaycastHit hit;
+        if (Physics.Raycast(ray, out hit, interactionRange, layerMask))
+        {
+            currentHitName = hit.collider.gameObject.name;
+            currentInteractable = hit.collider.GetComponent<InteractableObject>();
+            currentFood = hit.collider.GetComponent<FoodItem>();
+        }
+        else
+        {
+            currentHitName = "";
+            currentInteractable = null;
+            currentFood = null;
+        }
     }
 
     void PlaceHeldItem()
     {
-        if (heldItem == null || currentPlacementArea == null) return;
-        currentPlacementArea.PlaceVeggie(heldItem);
+        if (heldItem == null || placementArea == null) return;
+        placementArea.PlaceVeggie(heldItem);
         heldItem = null;
     }
 
     void TakeFromPlacement()
     {
-        if (heldItem != null || currentPlacementArea == null || !currentPlacementArea.HasVeggie) return;
-        heldItem = currentPlacementArea.RetrieveVeggie();
+        if (heldItem != null || placementArea == null || !placementArea.HasVeggie) return;
+        heldItem = placementArea.RetrieveFirstVeggie();
         heldItem.transform.SetParent(holdPoint);
         heldItem.transform.localPosition = Vector3.zero;
         heldItem.transform.localRotation = Quaternion.identity;
         heldItem.SetActive(true);
     }
 
-    void FindInteractable()
-    {
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position, interactionRange);
-        float closestDist = interactionRange + 1f;
-        InteractableObject closest = null;
-        FoodItem closestFood = null;
-        PlacementArea closestPlace = null;
-
-        foreach (var col in hitColliders)
-        {
-            float dist = Vector3.Distance(transform.position, col.transform.position);
-            if (dist > closestDist) continue;
-
-            InteractableObject io = col.GetComponent<InteractableObject>();
-            PlacementArea pa = col.GetComponent<PlacementArea>();
-            if (io != null)
-            {
-                closestDist = dist;
-                closest = io;
-                closestFood = col.GetComponent<FoodItem>();
-            }
-            if (pa != null)
-            {
-                closestDist = dist;
-                closestPlace = pa;
-            }
-        }
-
-        currentInteractable = closest;
-        currentFood = closestFood;
-        currentPlacementArea = closestPlace;
-    }
-
     void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, interactionRange);
+        if (pointerTransform != null)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawRay(pointerTransform.position, pointerTransform.forward * interactionRange);
+        }
     }
 }
