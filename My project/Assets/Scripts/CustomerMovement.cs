@@ -1,10 +1,9 @@
 using UnityEngine;
-using UnityEngine.AI; // Required for NavMesh
+using UnityEngine.AI;
 
 public class AIPathMovement : MonoBehaviour
 {
-    public Transform target; // Drag your player or a waypoint here
-    private NavMeshAgent agent;
+    public Transform target;    private NavMeshAgent agent;
 
     void Start()
     {
@@ -15,7 +14,6 @@ public class AIPathMovement : MonoBehaviour
     {
         if (target != null)
         {
-            // Tells the agent to calculate a path and move to the target
             agent.SetDestination(target.position);
         }
     }

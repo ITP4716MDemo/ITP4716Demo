@@ -56,6 +56,11 @@ namespace UnityStandardAssets.Characters.FirstPerson
             m_Jumping = false;
             m_AudioSource = GetComponent<AudioSource>();
             m_MouseLook.Init(transform, m_Camera.transform);
+
+            // --- DISABLE HEADBOB ---
+            m_UseHeadBob = false;
+            // Reset camera to original position to avoid any offset
+            m_Camera.transform.localPosition = m_OriginalCameraPosition;
         }
 
         private void Update()
@@ -165,11 +170,12 @@ namespace UnityStandardAssets.Characters.FirstPerson
 
         private void UpdateCameraPosition(float speed)
         {
-            Vector3 newCameraPosition;
+            // Headbob disabled – do nothing (camera position stays fixed)
             if (!m_UseHeadBob)
             {
                 return;
             }
+            Vector3 newCameraPosition;
             if (m_CharacterController.velocity.magnitude > 0 && m_CharacterController.isGrounded)
             {
                 m_Camera.transform.localPosition =
