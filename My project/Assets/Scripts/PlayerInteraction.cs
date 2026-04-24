@@ -21,6 +21,15 @@ public class PlayerInteraction : MonoBehaviour
     [Header("Pointer")]
     public Transform pointerTransform;
 
+    [Header("Audio")]
+    public AudioClip chopSound;          // assign in Inspector
+    public AudioClip pickupSound;        // assign in Inspector
+    private AudioSource audioSource;     // for playing sounds
+
+    // ➡️ NEW: Reference to the fridge respawner
+    [Header("Respawn")]
+    public FridgeRespawner fridgeRespawner;   // drag the GameObject with FridgeRespawner here
+
     private InteractableObject currentInteractable;
     private FoodItem currentFood;
     private string currentHitName;
@@ -32,6 +41,11 @@ public class PlayerInteraction : MonoBehaviour
             pointerTransform = transform.Find("Pointer");
         if (pointerTransform == null)
             Debug.LogWarning("Pointer Transform not assigned – will fallback to camera raycast.");
+
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+            audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.playOnAwake = false;
     }
 
     void Update()
@@ -77,7 +91,11 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     FoodItem placedFood = placementArea.RetrieveFirstVeggie().GetComponent<FoodItem>();
                     if (placedFood != null)
+                    {
+                        if (chopSound != null && audioSource != null)
+                            audioSource.PlayOneShot(chopSound);
                         placedFood.Chop();
+                    }
                 }
                 else
                 {
@@ -88,6 +106,13 @@ public class PlayerInteraction : MonoBehaviour
                         heldItem = currentFood.Pickup();
                         if (heldItem != null)
                         {
+                            if (pickupSound != null && audioSource != null)
+                                audioSource.PlayOneShot(pickupSound);
+
+                            // ➡️ NEW: Respawn a new vegetable in the fridge
+                            if (fridgeRespawner != null)
+                                fridgeRespawner.RespawnOneVegetable();
+
                             heldItem.transform.SetParent(holdPoint);
                             heldItem.transform.localPosition = Vector3.zero;
                             heldItem.transform.localRotation = Quaternion.identity;
@@ -147,6 +172,8 @@ public class PlayerInteraction : MonoBehaviour
     {
         if (heldItem != null || placementArea == null || !placementArea.HasVeggie) return;
         heldItem = placementArea.RetrieveFirstVeggie();
+        if (pickupSound != null && audioSource != null)
+            audioSource.PlayOneShot(pickupSound);
         heldItem.transform.SetParent(holdPoint);
         heldItem.transform.localPosition = Vector3.zero;
         heldItem.transform.localRotation = Quaternion.identity;

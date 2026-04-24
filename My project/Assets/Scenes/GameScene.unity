@@ -4046,13 +4046,13 @@ Transform:
   m_GameObject: {fileID: 265326877}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: -2.146, y: 0.511, z: 1.7}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 265751871}
   - {fileID: 1390586185301519917}
-  m_Father: {fileID: 976479176}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!4 &265751871
 Transform:
@@ -4063,7 +4063,7 @@ Transform:
   m_GameObject: {fileID: 265326879}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.0034016226, y: 0.48289317, z: 0.11849381}
+  m_LocalPosition: {x: 0.003, y: 0.48289317, z: 0.16}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -9218,8 +9218,8 @@ Transform:
   m_GameObject: {fileID: 540856592}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.025, y: 1, z: 0.025}
+  m_LocalPosition: {x: 0, y: -0.049, z: 0}
+  m_LocalScale: {x: 0.025, y: 0.2, z: 0.025}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 265751871}
@@ -16081,38 +16081,6 @@ Light:
   m_UseViewFrustumForShadowCasterCull: 1
   m_ShadowRadius: 0
   m_ShadowAngle: 0
---- !u!1 &976479175
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 976479176}
-  m_Layer: 0
-  m_Name: Player
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &976479176
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 976479175}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.146, y: 0.511, z: 1.7}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 265751869}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &980586756 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 30654fe2b578e784aa6ffa2d9da97450, type: 3}
@@ -19138,8 +19106,8 @@ Transform:
   m_GameObject: {fileID: 1203274907}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0, y: 0.764, z: 0.043}
-  m_LocalScale: {x: 0.65, y: 1.14, z: 0.385}
+  m_LocalPosition: {x: -0.009, y: 0.764, z: -0.027}
+  m_LocalScale: {x: 0.65, y: 1.14, z: 0.185}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2789089831768127741}
@@ -20046,6 +20014,9 @@ MonoBehaviour:
   holdPoint: {fileID: 604612799}
   placementArea: {fileID: 27909396}
   pointerTransform: {fileID: 540856593}
+  chopSound: {fileID: 8300000, guid: 980ef0d26ccef0d49ac11206cc087a6c, type: 3}
+  pickupSound: {fileID: 8300000, guid: 5faf51252fc4ddd4d83a192dd72da2d9, type: 3}
+  fridgeRespawner: {fileID: 919132149424975342}
 --- !u!114 &1291813688
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -34194,7 +34165,7 @@ MonoBehaviour:
   - {fileID: 959501588658726770}
   - {fileID: 3779269581911800789}
   spawnArea: {fileID: 1203274908}
-  numberOfVeggies: 20
+  numberOfVeggies: 30
   randomRotation: 1
   positionOffset: {x: 0, y: 0, z: 0}
   overlapRadius: 0.005
@@ -34211,9 +34182,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ff59dc52382b871408ab86e49da0d0a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  vegetablePrefabs: []
+  vegetablePrefabs:
+  - {fileID: 2796277460476840747}
+  - {fileID: 7887754354662403515}
+  - {fileID: 4725156071311412304}
+  - {fileID: 8449245510911356992}
+  - {fileID: 616596780127092570}
+  - {fileID: 775245730425212334}
+  - {fileID: 1334060426356109473}
+  - {fileID: 1468751297689571324}
+  - {fileID: 3161145017017530994}
+  - {fileID: 9166227287764637865}
+  - {fileID: 959501588658726770}
+  - {fileID: 3779269581911800789}
   spawnArea: {fileID: 1203274908}
-  overlapRadius: 0.5
+  overlapRadius: 0.005
   maxAttempts: 100
 --- !u!1 &924012304619512136
 GameObject:
@@ -47611,7 +47594,7 @@ SceneRoots:
   - {fileID: 1013714737}
   - {fileID: 2093874347}
   - {fileID: 1877703276}
-  - {fileID: 976479176}
+  - {fileID: 265751869}
   - {fileID: 1163833157}
   - {fileID: 440364184}
   - {fileID: 7565558014743210105}

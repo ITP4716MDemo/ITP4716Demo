@@ -1181,6 +1181,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   finalScoreText: {fileID: 1505817160}
+  buttonClickSound: {fileID: 8300000, guid: 247e9adf61ec346859db4857417026b4, type: 3}
+  soundEnabled: 1
+  soundVolume: 1
 --- !u!4 &1727698897
 Transform:
   m_ObjectHideFlags: 0
@@ -1362,6 +1365,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gameSceneName: GameScene
+  buttonClickSound: {fileID: 8300000, guid: 247e9adf61ec346859db4857417026b4, type: 3}
+  soundEnabled: 1
+  soundVolume: 1
 --- !u!4 &2045286821
 Transform:
   m_ObjectHideFlags: 0

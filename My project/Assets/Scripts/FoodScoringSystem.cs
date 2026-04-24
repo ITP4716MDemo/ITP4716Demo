@@ -53,7 +53,7 @@ public class FoodScoringSystem : MonoBehaviour
             { "SM_Food_Potato02", 2 },
             { "SM_Food_Potato01", 2 },
             { "SM_SweetPotato01", 2 },
-            { "SM_Sweet_Garlic01", 1 },
+            { "SM_Food_Garlic01", 1 },
             { "SM_Food_Onion01", 1 },
             { "SM_Food_Turnip01", 1 },
             { "SM_Food_Mush01", 1 },
@@ -63,6 +63,9 @@ public class FoodScoringSystem : MonoBehaviour
 
     public void ChopFood(string foodName)
     {
+        // Prevent scoring after the timer has run out
+        if (!timerRunning) return;
+
         if (!foodScores.ContainsKey(foodName))
         {
             Debug.LogError("Unknown food type: " + foodName);
@@ -84,9 +87,23 @@ public class FoodScoringSystem : MonoBehaviour
             consecutiveSameCount = 1;
         }
 
+        // Store score before adding points to detect threshold crossings
+        int oldScore = currentTotalScore;
         lastChoppedFood = foodName;
         currentTotalScore += totalGained;
         UpdateScoreUI();
+
+        // Timer increase for every 10 total points gained
+        int oldTens = oldScore / 10;
+        int newTens = currentTotalScore / 10;
+        int tensCrossed = newTens - oldTens;
+        if (tensCrossed > 0)
+        {
+            float timeToAdd = tensCrossed * 5f;   // +5 seconds per crossed multiple of 10
+            timeRemaining += timeToAdd;
+            Debug.Log($"Score crossed {tensCrossed} ten-point threshold(s)! +{timeToAdd} seconds added. New time: {timeRemaining:F1}s");
+            UpdateTimerUI();
+        }
 
         Debug.Log($"Chopped {foodName} → +{totalGained} points. Total: {currentTotalScore}");
     }
