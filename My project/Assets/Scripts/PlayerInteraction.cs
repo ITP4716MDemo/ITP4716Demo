@@ -5,8 +5,8 @@ public class PlayerInteraction : MonoBehaviour
 {
     [Header("Detection Settings")]
     public float interactionRange = 2f;
-    public KeyCode interactKey = KeyCode.E;
-    public KeyCode placeKey = KeyCode.F;
+    public KeyCode interactKey = KeyCode.E;      // Pick up
+    public KeyCode throwKey = KeyCode.Mouse0;    // Throw with left mouse button
 
     [Header("UI Prompt")]
     public Text promptText;
@@ -15,25 +15,23 @@ public class PlayerInteraction : MonoBehaviour
     public Transform holdPoint;
     private GameObject heldItem = null;
 
-    [Header("Placement")]
-    public PlacementArea placementArea;   // drag your counter here
+    [Header("Throwing")]
+    public float throwForce = 15f;               // Strength of throw
+    public AudioClip throwSound;                 // Optional throw sound
 
     [Header("Pointer")]
     public Transform pointerTransform;
 
     [Header("Audio")]
-    public AudioClip chopSound;          // assign in Inspector
-    public AudioClip pickupSound;        // assign in Inspector
-    private AudioSource audioSource;     // for playing sounds
+    public AudioClip pickupSound;
+    private AudioSource audioSource;
 
-    // ➡️ NEW: Reference to the fridge respawner
     [Header("Respawn")]
-    public FridgeRespawner fridgeRespawner;   // drag the GameObject with FridgeRespawner here
+    public FridgeRespawner fridgeRespawner;       // For respawning veggies in fridge
 
     private InteractableObject currentInteractable;
     private FoodItem currentFood;
     private string currentHitName;
-    private bool isLookingAtPlacementArea = false;
 
     void Start()
     {
@@ -52,76 +50,27 @@ public class PlayerInteraction : MonoBehaviour
     {
         FindInteractableRaycast();
 
-        // Update isLookingAtPlacementArea separately (could also be set in raycast)
-        isLookingAtPlacementArea = (currentHitName == placementArea?.gameObject.name);
-
-        // PLACEMENT prompt & action: must be holding item AND looking at the placement area
-        if (heldItem != null && isLookingAtPlacementArea && placementArea != null && !placementArea.IsFull)
+        // --- Pickup logic: empty handed, looking at something grabbable ---
+        if (heldItem == null && currentFood != null && currentFood.isGrabbable)
         {
-            promptText.text = "Press F to place " + heldItem.GetComponent<FoodItem>().foodName;
-            promptText.gameObject.SetActive(true);
-            if (Input.GetKeyDown(placeKey))
-            {
-                PlaceHeldItem();
-                return;
-            }
-        }
-        // TAKING prompt: when empty-handed, looking at placement area that has a veggie
-        else if (heldItem == null && isLookingAtPlacementArea && placementArea != null && placementArea.HasVeggie)
-        {
-            promptText.text = "Press E to take vegetable";
+            promptText.text = "Press E to pick up " + currentFood.foodName;
             promptText.gameObject.SetActive(true);
             if (Input.GetKeyDown(interactKey))
             {
-                TakeFromPlacement();
+                PickupItem();
                 return;
             }
         }
-        // OTHER interactable objects (including chopping board, items to pick up)
-        else if (currentInteractable != null)
+        // --- Throw logic: holding an item ---
+        else if (heldItem != null)
         {
-            promptText.text = currentInteractable.interactionPrompt;
+            promptText.text = "Press Left Mouse Button to throw";
             promptText.gameObject.SetActive(true);
-            if (Input.GetKeyDown(interactKey))
+            if (Input.GetKeyDown(throwKey))
             {
-                // Chopping board logic (must look at BoardRounded and have veggies placed)
-                if (currentInteractable.GetComponent<ChoppingBoard>() != null &&
-                    placementArea != null && placementArea.HasVeggie &&
-                    currentHitName == "BoardRounded")
-                {
-                    FoodItem placedFood = placementArea.RetrieveFirstVeggie().GetComponent<FoodItem>();
-                    if (placedFood != null)
-                    {
-                        if (chopSound != null && audioSource != null)
-                            audioSource.PlayOneShot(chopSound);
-                        placedFood.Chop();
-                    }
-                }
-                else
-                {
-                    currentInteractable.Interact();
-                    // Pickup from fridge or other objects
-                    if (currentFood != null && heldItem == null && currentFood.isGrabbable)
-                    {
-                        heldItem = currentFood.Pickup();
-                        if (heldItem != null)
-                        {
-                            if (pickupSound != null && audioSource != null)
-                                audioSource.PlayOneShot(pickupSound);
-
-                            // ➡️ NEW: Respawn a new vegetable in the fridge
-                            if (fridgeRespawner != null)
-                                fridgeRespawner.RespawnOneVegetable();
-
-                            heldItem.transform.SetParent(holdPoint);
-                            heldItem.transform.localPosition = Vector3.zero;
-                            heldItem.transform.localRotation = Quaternion.identity;
-                            heldItem.SetActive(true);
-                        }
-                    }
-                }
+                ThrowHeldItem();
+                return;
             }
-            return;
         }
         else
         {
@@ -143,6 +92,7 @@ public class PlayerInteraction : MonoBehaviour
             Debug.DrawRay(ray.origin, ray.direction * interactionRange, Color.green, 2f);
         }
 
+        // Optional: ignore SpawnArea layer if you have one
         int spawnAreaLayer = LayerMask.NameToLayer("SpawnArea");
         int layerMask = (spawnAreaLayer == -1) ? ~0 : ~(1 << spawnAreaLayer);
 
@@ -161,23 +111,63 @@ public class PlayerInteraction : MonoBehaviour
         }
     }
 
-    void PlaceHeldItem()
+    void PickupItem()
     {
-        if (heldItem == null || placementArea == null) return;
-        placementArea.PlaceVeggie(heldItem);
-        heldItem = null;
+        if (currentFood == null || heldItem != null) return;
+
+        // Use the FoodItem's Pickup method (assumes it returns the GameObject)
+        heldItem = currentFood.Pickup();
+        if (heldItem != null)
+        {
+            if (pickupSound != null && audioSource != null)
+                audioSource.PlayOneShot(pickupSound);
+
+            // Respawn a new vegetable in the fridge (if applicable)
+            if (fridgeRespawner != null)
+                fridgeRespawner.RespawnOneVegetable();
+
+            // Attach to hold point and disable physics while held
+            heldItem.transform.SetParent(holdPoint);
+            heldItem.transform.localPosition = Vector3.zero;
+            heldItem.transform.localRotation = Quaternion.identity;
+            heldItem.SetActive(true);
+
+            // Disable Rigidbody physics while held
+            Rigidbody rb = heldItem.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.isKinematic = true;
+                rb.useGravity = false;
+            }
+        }
     }
 
-    void TakeFromPlacement()
+    void ThrowHeldItem()
     {
-        if (heldItem != null || placementArea == null || !placementArea.HasVeggie) return;
-        heldItem = placementArea.RetrieveFirstVeggie();
-        if (pickupSound != null && audioSource != null)
-            audioSource.PlayOneShot(pickupSound);
-        heldItem.transform.SetParent(holdPoint);
-        heldItem.transform.localPosition = Vector3.zero;
-        heldItem.transform.localRotation = Quaternion.identity;
-        heldItem.SetActive(true);
+        if (heldItem == null) return;
+
+        // Play throw sound if assigned
+        if (throwSound != null && audioSource != null)
+            audioSource.PlayOneShot(throwSound);
+
+        // Detach from player
+        heldItem.transform.SetParent(null);
+
+        // Enable physics
+        Rigidbody rb = heldItem.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.isKinematic = false;
+            rb.useGravity = true;
+            // Apply force in the direction the player is looking (camera or pointer forward)
+            Vector3 throwDirection = (pointerTransform != null) ? pointerTransform.forward : Camera.main.transform.forward;
+            rb.AddForce(throwDirection * throwForce, ForceMode.Impulse);
+            // Optional: add a little random torque for spinning
+            rb.AddTorque(Random.insideUnitSphere * 5f, ForceMode.Impulse);
+        }
+
+        // Clear held reference
+        heldItem = null;
     }
 
     void OnDrawGizmosSelected()
