@@ -3,12 +3,16 @@ using UnityEngine;
 public class FridgeFiller : MonoBehaviour
 {
     public GameObject[] vegetablePrefabs;
-    public Transform spawnArea;
+    public Transform spawnArea;          // Must have a BoxCollider
     public int numberOfVeggies = 10;
     public bool randomRotation = true;
     public Vector3 positionOffset = Vector3.zero;
-    public float overlapRadius = 0.5f;
+    public float overlapRadius = 0.3f;   // Smaller radius to avoid overlapping
     public int maxAttempts = 100;
+
+    // Optional: assign a tag to your vegetables for overlap detection
+    // If empty, it will check for any collider (to avoid overlap with anything)
+    public string vegetableTag = "Vegetable";
 
     void Start()
     {
@@ -17,7 +21,6 @@ public class FridgeFiller : MonoBehaviour
 
     void FillFridge()
     {
-        // Check 1: vegetablePrefabs array must contain at least one prefab
         if (vegetablePrefabs == null || vegetablePrefabs.Length == 0)
         {
             Debug.LogError("No vegetable prefabs assigned to FridgeFiller!");
@@ -41,7 +44,6 @@ public class FridgeFiller : MonoBehaviour
 
         for (int i = 0; i < numberOfVeggies; i++)
         {
-            // Randomly pick a prefab (safe because length > 0)
             int randomIndex = Random.Range(0, vegetablePrefabs.Length);
             GameObject veggiePrefab = vegetablePrefabs[randomIndex];
 
@@ -56,7 +58,7 @@ public class FridgeFiller : MonoBehaviour
                     Random.Range(bounds.min.z, bounds.max.z)
                 );
 
-                if (!OverlapsExisting(randomPos + positionOffset, overlapRadius))
+                if (!OverlapsExisting(randomPos + positionOffset))
                 {
                     positionFound = true;
                     break;
@@ -75,18 +77,23 @@ public class FridgeFiller : MonoBehaviour
                 veggie.transform.rotation = Random.rotation;
             }
             veggie.transform.parent = transform;
+
+            // Optional: give it the "Vegetable" tag for future reference
+            veggie.tag = vegetableTag;
         }
     }
 
-    bool OverlapsExisting(Vector3 position, float radius)
+    bool OverlapsExisting(Vector3 position)
     {
-        Collider[] hits = Physics.OverlapSphere(position, radius);
+        Collider[] hits = Physics.OverlapSphere(position, overlapRadius);
         foreach (Collider hit in hits)
         {
-            if (hit.GetComponent<FoodItem>() != null)
-            {
+            // If you want to avoid overlapping only vegetables, check the tag
+            if (!string.IsNullOrEmpty(vegetableTag) && hit.CompareTag(vegetableTag))
                 return true;
-            }
+
+            // Alternatively, to avoid overlapping ANY object (walls, other items), use:
+            // return true; // but that's too strict
         }
         return false;
     }
