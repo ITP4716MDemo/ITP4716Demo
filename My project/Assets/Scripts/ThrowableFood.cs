@@ -18,10 +18,20 @@ public class ThrowableFood : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Pot"))
+        Debug.Log($"[ThrowableFood] Hit: {other.name}, tag: {other.tag}");
+        
+        if (other.CompareTag("Pot") || other.CompareTag("PotSmall"))
         {
+            Debug.Log($"[ThrowableFood] Pot detected. Manager is {(manager == null ? "NULL" : "assigned")}");
             if (manager != null)
-                manager.OnFoodEnteredPot(foodID);
+            {
+                Debug.Log($"[ThrowableFood] Calling manager.OnFoodEnteredPot with foodID={foodID}, pot={other.gameObject.name}");
+                manager.OnFoodEnteredPot(foodID, other.gameObject);
+            }
+            else
+            {
+                Debug.LogError("[ThrowableFood] Manager reference is NULL! Cannot add points.");
+            }
             Destroy(gameObject);
         }
     }

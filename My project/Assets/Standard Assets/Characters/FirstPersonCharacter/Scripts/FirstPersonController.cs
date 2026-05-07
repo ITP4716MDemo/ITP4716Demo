@@ -30,6 +30,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
         [SerializeField] private AudioClip m_JumpSound;
         [SerializeField] private AudioClip m_LandSound;
         [HideInInspector] public bool movementLocked = false;
+    [HideInInspector] public bool allowCursorLock = true;
 
         private Camera m_Camera;
         private bool m_Jump;
@@ -133,8 +134,10 @@ namespace UnityStandardAssets.Characters.FirstPerson
             }
             // --- END MOVEMENT LOCK ---
 
-            m_MouseLook.UpdateCursorLock();   // Keep cursor lock behaviour (still works when movement is locked)
+            if (allowCursorLock)
+            m_MouseLook.UpdateCursorLock();
         }
+
         private void PlayJumpSound()
         {
             m_AudioSource.clip = m_JumpSound;

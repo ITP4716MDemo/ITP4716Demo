@@ -39,6 +39,17 @@ public class PlayerInteraction : MonoBehaviour
                 currentDoor.ShowSelectionMenu();
             return;
         }
+
+        if (Input.GetKeyDown(KeyCode.E))
+    {
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position, transform.forward, out hit, 3f))
+        {
+            DoorInteract door = hit.collider.GetComponent<DoorInteract>();
+            if (door != null)
+                door.Interact();
+        }
+    }
     }
 
     void FindInteractableRaycast()

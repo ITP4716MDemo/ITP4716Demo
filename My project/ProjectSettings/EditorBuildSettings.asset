@@ -12,21 +12,24 @@ EditorBuildSettings:
     path: Assets/Scenes/GameScene.unity
     guid: 1e7f083e46f1f66418120f847565967f
   - enabled: 1
-    path: Assets/Scenes/GameOver.unity
-    guid: e566aac7ae426ee458d4c6afb5c58ab2
-  - enabled: 1
-    path: Assets/Scenes/Easy.unity
-    guid: bb40e0c00311be64393f0352dcb43a8a
-  - enabled: 0
-    path: Assets/Scenes/Hard.unity
-    guid: 3f4e9631911c3c84f8667e50eb4e6ba8
+    path: Assets/Scenes/Shop.unity
+    guid: b867411843cfb2143b4a3495d1698a77
   - enabled: 1
     path: Assets/Scenes/LevelSelection.unity
     guid: a1f60c0f2758def4580dad5581eea00c
-  - enabled: 0
-    path: Assets/Scenes/Medium.unity
-    guid: 107f0274607a475408c29b3fab12c81e
   - enabled: 1
-    path: Assets/Scenes/Shop.unity
-    guid: b867411843cfb2143b4a3495d1698a77
+    path: Assets/Scenes/Continue.unity
+    guid: 81383c54f3e6e964999d028f214af62d
+  - enabled: 1
+    path: Assets/Scenes/Easy.unity
+    guid: bb40e0c00311be64393f0352dcb43a8a
+  - enabled: 1
+    path: Assets/Scenes/Medium.unity
+    guid: c345e92d10f0eb5478b7bea9a9a7a4d6
+  - enabled: 1
+    path: Assets/Scenes/Hard.unity
+    guid: 79ec9a8b050c5484c9de3cb48bc887f5
+  - enabled: 0
+    path: Assets/Scenes/GameOver.unity
+    guid: e566aac7ae426ee458d4c6afb5c58ab2
   m_configObjects: {}

@@ -14,7 +14,8 @@ public class CookingMinigameManager : MonoBehaviour
     public float gameTime = 60f;
     public Transform handPoint;
     public GameObject[] foodPrefabs;
-    public string potTag = "Pot";
+    public string potTag = "Pot";               // General pot tag
+    public string doublePointsPotTag = "PotSmall"; // Tag that gives double points
     public string nextSceneName = "GameOver";
 
     [Header("Score Values")]
@@ -41,14 +42,12 @@ public class CookingMinigameManager : MonoBehaviour
 
     void Start()
     {
-        // Ensure GameManager exists
         if (GameManager.Instance == null)
             Debug.LogError("GameManager instance not found! Please add GameManager to your first scene with DontDestroyOnLoad.");
 
         timeRemaining = gameTime;
         UpdateUI();
 
-        // Lock player movement
         PlayerLockPosition lockPos = FindObjectOfType<PlayerLockPosition>();
         if (lockPos != null) lockPos.LockPlayer(true);
 
@@ -92,7 +91,6 @@ public class CookingMinigameManager : MonoBehaviour
         if (currentHeldFood != null)
             Destroy(currentHeldFood);
 
-        // Get unlocked foods from GameManager
         if (GameManager.Instance == null || GameManager.Instance.unlockableFoods == null || GameManager.Instance.unlockableFoods.Length == 0)
         {
             Debug.LogError("GameManager missing or has no unlockableFoods array!");
@@ -103,7 +101,6 @@ public class CookingMinigameManager : MonoBehaviour
         if (unlocked.Count == 0)
         {
             Debug.LogWarning("No unlocked foods. Unlocking default set (Mush01, Turnip01, Onion01).");
-            // Force default unlock (should already be true from GameManager, but safety)
             foreach (var f in GameManager.Instance.unlockableFoods)
             {
                 if (f.foodID == "Mush01" || f.foodID == "Turnip01" || f.foodID == "Onion01")
@@ -112,11 +109,9 @@ public class CookingMinigameManager : MonoBehaviour
             unlocked = GameManager.Instance.unlockableFoods.Where(f => f.isUnlocked).ToList();
         }
 
-        // Build list of available prefabs
         List<GameObject> availablePrefabs = new List<GameObject>();
         foreach (var food in unlocked)
         {
-            // Try exact name match or with "SM_Food_" prefix
             GameObject prefab = foodPrefabs.FirstOrDefault(p => p != null && (p.name == food.foodID || p.name == "SM_Food_" + food.foodID));
             if (prefab != null)
                 availablePrefabs.Add(prefab);
@@ -131,7 +126,7 @@ public class CookingMinigameManager : MonoBehaviour
         }
 
         GameObject selectedPrefab = availablePrefabs[Random.Range(0, availablePrefabs.Count)];
-        string selectedID = selectedPrefab.name.Replace("SM_Food_", ""); // get clean ID
+        string selectedID = selectedPrefab.name.Replace("SM_Food_", "");
 
         currentHeldFood = Instantiate(selectedPrefab, handPoint.position, handPoint.rotation, handPoint);
         Rigidbody rb = currentHeldFood.GetComponent<Rigidbody>();
@@ -159,8 +154,11 @@ public class CookingMinigameManager : MonoBehaviour
         Invoke(nameof(SpawnRandomFood), 0.5f);
     }
 
-    public void OnFoodEnteredPot(string foodID)
+    // NEW: Accepts the pot GameObject and checks its tag for double points (with debug logs)
+    public void OnFoodEnteredPot(string foodID, GameObject pot)
     {
+        Debug.Log($"[CookingManager] OnFoodEnteredPot called: foodID={foodID}, pot={(pot != null ? pot.name : "NULL")}, pot tag={(pot != null ? pot.tag : "NULL")}");
+
         if (!isGameActive) return;
 
         if (!foodScores.ContainsKey(foodID))
@@ -170,14 +168,33 @@ public class CookingMinigameManager : MonoBehaviour
         }
 
         int points = foodScores[foodID];
+        bool isDouble = false;
+
+        if (pot != null && pot.CompareTag(doublePointsPotTag))
+        {
+            points *= 2;
+            isDouble = true;
+            Debug.Log($"✅ DOUBLE POINTS! +{points} for {foodID} in pot tagged '{doublePointsPotTag}'");
+        }
+        else
+        {
+            Debug.Log($"❌ Normal points: +{points} for {foodID}. Pot tag is '{(pot != null ? pot.tag : "NULL")}', expected '{doublePointsPotTag}' for double.");
+        }
+
         currentScore += points;
 
-        // Add points persistently via GameManager
         if (GameManager.Instance != null)
             GameManager.Instance.AddPoints(points);
 
         UpdateUI();
         Debug.Log($"Threw {foodID} into pot! +{points} points. Total this minigame: {currentScore}");
+    }
+
+    // Old overload for compatibility (if any script still calls with one argument)
+    public void OnFoodEnteredPot(string foodID)
+    {
+        Debug.LogWarning($"[CookingManager] Old overload called for {foodID} – no pot reference, cannot double points.");
+        OnFoodEnteredPot(foodID, null);
     }
 
     private void EndGame()
@@ -187,7 +204,6 @@ public class CookingMinigameManager : MonoBehaviour
         PlayerLockPosition lockPos = FindObjectOfType<PlayerLockPosition>();
         if (lockPos != null) lockPos.LockPlayer(false);
 
-        // Optionally save final score for result screen
         PlayerPrefs.SetInt("FinalScore", currentScore);
         PlayerPrefs.Save();
 

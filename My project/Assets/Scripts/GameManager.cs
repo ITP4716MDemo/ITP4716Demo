@@ -4,6 +4,15 @@ using System.Linq;
 
 public class GameManager : MonoBehaviour
 {
+    public void SaveUnlockStates()
+    {
+        foreach (var food in unlockableFoods)
+        {
+            string key = UNLOCK_KEY_PREFIX + food.foodID;
+            PlayerPrefs.SetInt(key, food.isUnlocked ? 1 : 0);
+        }
+        PlayerPrefs.Save();
+    }
     public static GameManager Instance;
 
     [Header("Points")]
@@ -66,18 +75,34 @@ public class GameManager : MonoBehaviour
     public bool TryUnlockFood(string foodID)
     {
         var food = unlockableFoods.FirstOrDefault(f => f.foodID == foodID);
-        if (food == null || food.isUnlocked) return false;
-
-        if (TotalPoints >= food.unlockCost)
+        if (food == null)
         {
-            TotalPoints -= food.unlockCost;
+            Debug.LogError($"Food '{foodID}' not found in unlockableFoods array!");
+            return false;
+        }
+        if (food.isUnlocked)
+        {
+            Debug.Log($"Food '{foodID}' is already unlocked.");
+            return false;
+        }
+
+        int currentPoints = TotalPoints;
+        Debug.Log($"Attempting to unlock {foodID}. Cost: {food.unlockCost}, Current points: {currentPoints}");
+
+        if (currentPoints >= food.unlockCost)
+        {
+            TotalPoints = currentPoints - food.unlockCost;
             food.isUnlocked = true;
             PlayerPrefs.SetInt(UNLOCK_KEY_PREFIX + foodID, 1);
             PlayerPrefs.Save();
-            Debug.Log($"Unlocked {foodID} for {food.unlockCost} points!");
+            Debug.Log($"Successfully unlocked {foodID}! Remaining points: {TotalPoints}");
             return true;
         }
-        return false;
+        else
+        {
+            Debug.Log($"Not enough points. Need {food.unlockCost}, have {currentPoints}");
+            return false;
+        }
     }
 
     public bool IsFoodUnlocked(string foodID)

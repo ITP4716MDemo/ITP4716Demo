@@ -6,16 +6,19 @@ using UnityEngine.SceneManagement;
 public class MenuBehavior : MonoBehaviour
 {
     [Header("Audio")]
-    public AudioClip buttonClickSound;   // assign in Inspector
-    public bool soundEnabled = true;     // option to enable/disable sound
+    public AudioClip buttonClickSound;
+    public bool soundEnabled = true;
     [Range(0f, 1f)]
-    public float soundVolume = 1f;       // volume multiplier (0 = mute, 1 = full)
+    public float soundVolume = 1f;
+
+    [Header("Points Reset")]
+    public string gameSceneName = "GameScene";   // name of the scene where the game starts
+    public bool resetPointsOnPlay = true;        // enable/disable points reset
 
     private AudioSource audioSource;
 
     void Start()
     {
-        // Get or add AudioSource component
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null)
             audioSource = gameObject.AddComponent<AudioSource>();
@@ -23,7 +26,6 @@ public class MenuBehavior : MonoBehaviour
         audioSource.volume = soundVolume;
     }
 
-    // Optional: update volume if changed during runtime
     void Update()
     {
         if (audioSource != null && audioSource.volume != soundVolume)
@@ -39,7 +41,55 @@ public class MenuBehavior : MonoBehaviour
     public void LoadScene(string sceneName)
     {
         PlayClickSound();
+
+        // Reset points and unlocks if the target scene is the game scene
+        if (resetPointsOnPlay && sceneName == gameSceneName)
+        {
+            ResetProgress();
+        }
+
         SceneManager.LoadScene(sceneName);
+    }
+
+    private void ResetProgress()
+    {
+        if (GameManager.Instance == null)
+        {
+            Debug.LogWarning("GameManager.Instance not found. Progress not reset.");
+            return;
+        }
+
+        // Reset total points
+        GameManager.Instance.TotalPoints = 0;
+        Debug.Log("Points reset to 0.");
+
+        // Reset unlocked foods – only keep those with unlockCost == 0 (default items)
+        int keptCount = 0;
+        int resetCount = 0;
+
+        foreach (var food in GameManager.Instance.unlockableFoods)
+        {
+            if (food.unlockCost == 0)
+            {
+                // Default items – keep unlocked
+                if (!food.isUnlocked)
+                    food.isUnlocked = true;
+                keptCount++;
+            }
+            else
+            {
+                // Purchased items – lock them
+                if (food.isUnlocked)
+                {
+                    food.isUnlocked = false;
+                    resetCount++;
+                }
+            }
+        }
+
+        // Persist the changes
+        GameManager.Instance.SaveUnlockStates();
+        Debug.Log($"Unlock reset complete. {keptCount} default foods kept unlocked, {resetCount} purchased foods locked.");
     }
 
     public void QuitGame()
@@ -48,7 +98,6 @@ public class MenuBehavior : MonoBehaviour
         Application.Quit();
     }
 
-    // Optional: public methods to toggle sound from UI
     public void SetSoundEnabled(bool enabled)
     {
         soundEnabled = enabled;

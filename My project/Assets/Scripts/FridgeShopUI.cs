@@ -18,7 +18,7 @@ public class FridgeShopUI : MonoBehaviour
             return;
         }
 
-        shopPanel.SetActive(false);
+        // ⚠️ Removed: shopPanel.SetActive(false); – shop is now visible on scene load
         BuildShopUI();
     }
 
@@ -71,13 +71,14 @@ public class FridgeShopUI : MonoBehaviour
         }
     }
 
+    // Optional: you can keep ToggleShop() if you ever need it,
+    // but it's not required for the shop to appear.
     public void ToggleShop()
     {
         shopPanel.SetActive(!shopPanel.activeSelf);
         if (shopPanel.activeSelf)
         {
             BuildShopUI();
-            // refresh points display if needed
             if (totalPointsText != null)
                 totalPointsText.text = "Total Points: " + GameManager.Instance.TotalPoints;
         }
