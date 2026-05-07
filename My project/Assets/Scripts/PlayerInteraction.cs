@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.UI;
 
 public class PlayerInteraction : MonoBehaviour
 {
@@ -7,15 +6,11 @@ public class PlayerInteraction : MonoBehaviour
     public float interactionRange = 2f;
     public KeyCode interactKey = KeyCode.E;
 
-    [Header("UI Prompt")]
-    public Text promptText;
-
     [Header("Pointer")]
     public Transform pointerTransform;
 
     private DoorLevelSelector currentDoor;
-    private FridgeInteract currentFridge;   // <-- ADDED: fridge interaction
-    private string currentHitName;
+    private FridgeInteract currentFridge;
 
     void Start()
     {
@@ -29,32 +24,21 @@ public class PlayerInteraction : MonoBehaviour
     {
         FindInteractableRaycast();
 
-        // --- PRIORITY 1: Looking at a fridge ---
+        // Priority 1: Fridge
         if (currentFridge != null)
         {
-            promptText.text = "Press E to open fridge shop";
-            promptText.gameObject.SetActive(true);
             if (Input.GetKeyDown(interactKey))
-            {
                 currentFridge.Interact();
-            }
             return;
         }
 
-        // --- PRIORITY 2: Looking at a door ---
+        // Priority 2: Door
         if (currentDoor != null)
         {
-            promptText.text = "Press E to select level";
-            promptText.gameObject.SetActive(true);
             if (Input.GetKeyDown(interactKey))
-            {
                 currentDoor.ShowSelectionMenu();
-            }
             return;
         }
-
-        // --- Nothing interactable ---
-        promptText.gameObject.SetActive(false);
     }
 
     void FindInteractableRaycast()
@@ -74,16 +58,14 @@ public class PlayerInteraction : MonoBehaviour
         int spawnAreaLayer = LayerMask.NameToLayer("SpawnArea");
         int layerMask = (spawnAreaLayer == -1) ? ~0 : ~(1 << spawnAreaLayer);
 
-        RaycastHit hit;   // <-- FIX: declared outside the if, now accessible everywhere
+        RaycastHit hit;
         if (Physics.Raycast(ray, out hit, interactionRange, layerMask))
         {
-            currentHitName = hit.collider.gameObject.name;
             currentDoor = hit.collider.GetComponent<DoorLevelSelector>();
-            currentFridge = hit.collider.GetComponent<FridgeInteract>();   // <-- ADDED
+            currentFridge = hit.collider.GetComponent<FridgeInteract>();
         }
         else
         {
-            currentHitName = "";
             currentDoor = null;
             currentFridge = null;
         }

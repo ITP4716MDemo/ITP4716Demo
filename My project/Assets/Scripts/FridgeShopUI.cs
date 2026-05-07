@@ -1,33 +1,41 @@
 using UnityEngine;
 using TMPro;
 using System.Linq;
+using UnityEngine.UI;
 
 public class FridgeShopUI : MonoBehaviour
 {
     public GameObject shopPanel;               // the UI panel
     public Transform buttonContainer;          // parent for dynamic buttons
     public GameObject buttonPrefab;            // UI button prefab (with TextMeshPro)
-    private CookingMinigameManager gameManager; // reference (or find it)
+    public TextMeshProUGUI totalPointsText;    // optional: display total points
 
     void Start()
     {
-        gameManager = FindObjectOfType<CookingMinigameManager>();
-        if (gameManager == null)
+        if (GameManager.Instance == null)
         {
-            Debug.LogError("CookingMinigameManager not found in scene!");
+            Debug.LogError("GameManager instance not found! Make sure it exists in the scene.");
             return;
         }
+
         shopPanel.SetActive(false);
         BuildShopUI();
     }
 
+    void Update()
+    {
+        // Update points display if assigned
+        if (totalPointsText != null && GameManager.Instance != null)
+            totalPointsText.text = "Total Points: " + GameManager.Instance.TotalPoints;
+    }
+
     void BuildShopUI()
     {
-        // Clear existing
+        // Clear existing buttons
         foreach (Transform child in buttonContainer)
             Destroy(child.gameObject);
 
-        foreach (var food in gameManager.unlockableFoods)
+        foreach (var food in GameManager.Instance.unlockableFoods)
         {
             GameObject btnObj = Instantiate(buttonPrefab, buttonContainer);
             TextMeshProUGUI btnText = btnObj.GetComponentInChildren<TextMeshProUGUI>();
@@ -37,10 +45,11 @@ public class FridgeShopUI : MonoBehaviour
                 btnText.text = $"{food.foodID}\n{status}";
             }
 
-            UnityEngine.UI.Button button = btnObj.GetComponent<UnityEngine.UI.Button>();
+            Button button = btnObj.GetComponent<Button>();
             if (!food.isUnlocked)
             {
-                button.onClick.AddListener(() => TryBuyFood(food.foodID));
+                string foodID = food.foodID; // capture for lambda
+                button.onClick.AddListener(() => TryBuyFood(foodID));
             }
             else
             {
@@ -51,11 +60,10 @@ public class FridgeShopUI : MonoBehaviour
 
     void TryBuyFood(string foodID)
     {
-        if (gameManager.TryUnlockFood(foodID))
+        if (GameManager.Instance.TryUnlockFood(foodID))
         {
             Debug.Log($"Purchased {foodID}!");
             BuildShopUI(); // refresh
-            // Also update total points display if you have one
         }
         else
         {
@@ -66,6 +74,12 @@ public class FridgeShopUI : MonoBehaviour
     public void ToggleShop()
     {
         shopPanel.SetActive(!shopPanel.activeSelf);
-        if (shopPanel.activeSelf) BuildShopUI();
+        if (shopPanel.activeSelf)
+        {
+            BuildShopUI();
+            // refresh points display if needed
+            if (totalPointsText != null)
+                totalPointsText.text = "Total Points: " + GameManager.Instance.TotalPoints;
+        }
     }
 }

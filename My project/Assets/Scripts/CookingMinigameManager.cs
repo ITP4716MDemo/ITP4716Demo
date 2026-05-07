@@ -27,36 +27,28 @@ public class CookingMinigameManager : MonoBehaviour
         { "Potato02", 3 },
         { "Potato01", 2 },
         { "SweetPotato01", 2 },
-        { "Garlic01", 1 },
+        { "Garlic01", 2 },
         { "Onion01", 1 },
         { "Turnip01", 1 },
         { "Mush01", 1 },
         { "Mush02", 2 }
     };
 
-    [System.Serializable]
-    public class UnlockableFood
-    {
-        public string foodID;
-        public int unlockCost;
-        public bool isUnlocked;
-    }
-    public UnlockableFood[] unlockableFoods;
-
     private float timeRemaining;
     private int currentScore = 0;
     private bool isGameActive = true;
     private GameObject currentHeldFood = null;
 
-    private const string TOTAL_POINTS_KEY = "CookingTotalPoints";
-    private const string UNLOCK_KEY_PREFIX = "Unlocked_";
-
     void Start()
     {
-        LoadUnlockStates();
+        // Ensure GameManager exists
+        if (GameManager.Instance == null)
+            Debug.LogError("GameManager instance not found! Please add GameManager to your first scene with DontDestroyOnLoad.");
+
         timeRemaining = gameTime;
         UpdateUI();
 
+        // Lock player movement
         PlayerLockPosition lockPos = FindObjectOfType<PlayerLockPosition>();
         if (lockPos != null) lockPos.LockPlayer(true);
 
@@ -86,18 +78,8 @@ public class CookingMinigameManager : MonoBehaviour
 
     private void UpdateUI()
     {
-        UpdateScoreUI();
-        UpdateTimerUI();
-    }
-
-    private void UpdateScoreUI()
-    {
         if (scoreText != null)
             scoreText.text = "Score: " + currentScore.ToString();
-    }
-
-    private void UpdateTimerUI()
-    {
         if (timerText != null)
         {
             int seconds = Mathf.CeilToInt(timeRemaining);
@@ -110,26 +92,48 @@ public class CookingMinigameManager : MonoBehaviour
         if (currentHeldFood != null)
             Destroy(currentHeldFood);
 
-        List<string> unlockedIDs = unlockableFoods
-            .Where(f => f.isUnlocked)
-            .Select(f => f.foodID)
-            .ToList();
-
-        if (unlockedIDs.Count == 0)
+        // Get unlocked foods from GameManager
+        if (GameManager.Instance == null || GameManager.Instance.unlockableFoods == null || GameManager.Instance.unlockableFoods.Length == 0)
         {
-            Debug.LogError("No unlocked foods! Unlock at least one in the fridge.");
+            Debug.LogError("GameManager missing or has no unlockableFoods array!");
             return;
         }
 
-        string selectedID = unlockedIDs[Random.Range(0, unlockedIDs.Count)];
-        GameObject prefab = foodPrefabs.FirstOrDefault(p => p.name == selectedID);
-        if (prefab == null)
+        var unlocked = GameManager.Instance.unlockableFoods.Where(f => f.isUnlocked).ToList();
+        if (unlocked.Count == 0)
         {
-            Debug.LogError($"No prefab found for food ID '{selectedID}'");
+            Debug.LogWarning("No unlocked foods. Unlocking default set (Mush01, Turnip01, Onion01).");
+            // Force default unlock (should already be true from GameManager, but safety)
+            foreach (var f in GameManager.Instance.unlockableFoods)
+            {
+                if (f.foodID == "Mush01" || f.foodID == "Turnip01" || f.foodID == "Onion01")
+                    f.isUnlocked = true;
+            }
+            unlocked = GameManager.Instance.unlockableFoods.Where(f => f.isUnlocked).ToList();
+        }
+
+        // Build list of available prefabs
+        List<GameObject> availablePrefabs = new List<GameObject>();
+        foreach (var food in unlocked)
+        {
+            // Try exact name match or with "SM_Food_" prefix
+            GameObject prefab = foodPrefabs.FirstOrDefault(p => p != null && (p.name == food.foodID || p.name == "SM_Food_" + food.foodID));
+            if (prefab != null)
+                availablePrefabs.Add(prefab);
+            else
+                Debug.LogWarning($"Missing prefab for unlocked food '{food.foodID}'. Add it to foodPrefabs array.");
+        }
+
+        if (availablePrefabs.Count == 0)
+        {
+            Debug.LogError("No valid unlocked foods with prefabs! Check your foodPrefabs array.");
             return;
         }
 
-        currentHeldFood = Instantiate(prefab, handPoint.position, handPoint.rotation, handPoint);
+        GameObject selectedPrefab = availablePrefabs[Random.Range(0, availablePrefabs.Count)];
+        string selectedID = selectedPrefab.name.Replace("SM_Food_", ""); // get clean ID
+
+        currentHeldFood = Instantiate(selectedPrefab, handPoint.position, handPoint.rotation, handPoint);
         Rigidbody rb = currentHeldFood.GetComponent<Rigidbody>();
         if (rb != null) rb.isKinematic = true;
 
@@ -168,13 +172,12 @@ public class CookingMinigameManager : MonoBehaviour
         int points = foodScores[foodID];
         currentScore += points;
 
-        int total = PlayerPrefs.GetInt(TOTAL_POINTS_KEY, 0);
-        total += points;
-        PlayerPrefs.SetInt(TOTAL_POINTS_KEY, total);
-        PlayerPrefs.Save();
+        // Add points persistently via GameManager
+        if (GameManager.Instance != null)
+            GameManager.Instance.AddPoints(points);
 
         UpdateUI();
-        Debug.Log($"Threw {foodID} into pot! +{points} points. Total: {currentScore}");
+        Debug.Log($"Threw {foodID} into pot! +{points} points. Total this minigame: {currentScore}");
     }
 
     private void EndGame()
@@ -184,6 +187,7 @@ public class CookingMinigameManager : MonoBehaviour
         PlayerLockPosition lockPos = FindObjectOfType<PlayerLockPosition>();
         if (lockPos != null) lockPos.LockPlayer(false);
 
+        // Optionally save final score for result screen
         PlayerPrefs.SetInt("FinalScore", currentScore);
         PlayerPrefs.Save();
 
@@ -191,35 +195,5 @@ public class CookingMinigameManager : MonoBehaviour
             SceneManager.LoadScene(nextSceneName);
         else
             Debug.LogError("nextSceneName is not set!");
-    }
-
-    private void LoadUnlockStates()
-    {
-        foreach (var food in unlockableFoods)
-        {
-            string key = UNLOCK_KEY_PREFIX + food.foodID;
-            if (PlayerPrefs.HasKey(key))
-                food.isUnlocked = PlayerPrefs.GetInt(key) == 1;
-            // else keep inspector default
-        }
-    }
-
-    public bool TryUnlockFood(string foodID)
-    {
-        var food = unlockableFoods.FirstOrDefault(f => f.foodID == foodID);
-        if (food == null || food.isUnlocked) return false;
-
-        int totalPoints = PlayerPrefs.GetInt(TOTAL_POINTS_KEY, 0);
-        if (totalPoints >= food.unlockCost)
-        {
-            PlayerPrefs.SetInt(TOTAL_POINTS_KEY, totalPoints - food.unlockCost);
-            food.isUnlocked = true;
-            string key = UNLOCK_KEY_PREFIX + foodID;
-            PlayerPrefs.SetInt(key, 1);
-            PlayerPrefs.Save();
-            Debug.Log($"Unlocked {foodID} for {food.unlockCost} points!");
-            return true;
-        }
-        return false;
     }
 }

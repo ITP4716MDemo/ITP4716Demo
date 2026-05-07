@@ -1,20 +1,20 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class FridgeInteract : MonoBehaviour
 {
-    public FridgeShopUI shopUI;
-
-    void Start()
-    {
-        if (shopUI == null)
-            shopUI = FindObjectOfType<FridgeShopUI>();
-    }
+    [Header("Scene to Load")]
+    public string targetSceneName = "FridgeShopScene";  // Set this in Inspector
 
     public void Interact()
     {
-        if (shopUI != null)
-            shopUI.ToggleShop();
+        if (!string.IsNullOrEmpty(targetSceneName))
+        {
+            SceneManager.LoadScene(targetSceneName);
+        }
         else
-            Debug.LogWarning("FridgeShopUI not found in scene!");
+        {
+            Debug.LogError("FridgeInteract: targetSceneName is not set! Cannot load scene.");
+        }
     }
 }
